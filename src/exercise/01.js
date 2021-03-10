@@ -53,6 +53,24 @@ function userReducer(state, action) {
   }
 }
 
+const startUpdate = (dispatch, formState) =>
+  dispatch({type: 'start update', updates: formState})
+const finishUpdate = (dispatch, updatedUser) =>
+  dispatch({type: 'finish update', updatedUser})
+const failUpdate = (dispatch, error) => dispatch({type: 'fail update', error})
+
+const updateUser = async ({user, formState, dispatch}) => {
+  startUpdate(dispatch, formState)
+  try {
+    const updatedUser = await userClient.updateUser(user, formState)
+    finishUpdate(dispatch, updatedUser)
+    return updatedUser
+  } catch (error) {
+    failUpdate(dispatch, error)
+    throw error
+  }
+}
+
 function UserProvider({children}) {
   const {user} = useAuth()
   const [state, dispatch] = React.useReducer(userReducer, {
@@ -77,10 +95,10 @@ function useUser() {
 // Then go down to the `handleSubmit` from `UserSettings` and put that logic in
 // this function. It should accept: dispatch, user, and updates
 
-// export {UserProvider, useUser}
+// export {UserProvider, useUser, updateUser}
 
 // src/screens/user-profile.js
-// import {UserProvider, useUser} from './context/user-context'
+// import {UserProvider, useUser, updateUser} from './context/user-context'
 function UserSettings() {
   const [{user, status, error}, userDispatch] = useUser()
 
@@ -97,12 +115,7 @@ function UserSettings() {
 
   function handleSubmit(event) {
     event.preventDefault()
-    // 🐨 move the following logic to the `updateUser` function you create above
-    userDispatch({type: 'start update', updates: formState})
-    userClient.updateUser(user, formState).then(
-      updatedUser => userDispatch({type: 'finish update', updatedUser}),
-      error => userDispatch({type: 'fail update', error}),
-    )
+    updateUser({user, formState, dispatch: userDispatch})
   }
 
   return (
